@@ -69,12 +69,37 @@ class ReflexAgent(Agent):
         # Useful information you can extract from a GameState (pacman.py)
         successorGameState = currentGameState.generatePacmanSuccessor(action)
         newPos = successorGameState.getPacmanPosition()
-        newFood = successorGameState.getFood()
+        newFood = successorGameState.getFood().asList()
         newGhostStates = successorGameState.getGhostStates()
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
         "*** YOUR CODE HERE ***"
-        return successorGameState.getScore()
+
+
+        # your answer will *probably* only need to use the variables defined above
+
+
+        # do not move pacman within the box that the ghost is immediately around (basically never put it within one move of the ghost
+        for i, g in enumerate(newGhostStates):
+            d = manhattanDistance(newPos, g.getPosition())
+            if  d <= 2 and not newScaredTimes[i] > 1:
+                return successorGameState.getScore() + -10000 * (3 - d)
+
+
+        # prioritize nodes that are closer to food.
+        # go through all the food nodes, sum total manhattan distance
+        dists = []
+        dsum = 0
+        for foodpos in newFood:
+            # dists += [1/(manhattanDistance(foodpos, newPos) + 1) * 100]
+            dists += [manhattanDistance(foodpos, newPos)]
+            dsum += 1.0/manhattanDistance(foodpos, newPos)
+
+        # by subtracting we favor nodes that are closer to food
+        if len(dists) == 0:
+            return successorGameState.getScore()
+
+        return successorGameState.getScore() + dsum
 
 def scoreEvaluationFunction(currentGameState):
     """
@@ -129,7 +154,98 @@ class MinimaxAgent(MultiAgentSearchAgent):
             Returns the total number of agents in the game
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        legalMoves = gameState.getLegalActions()
+
+        # Choose one of the best actions
+        # scores = [self.evaluationFunction(gameState, action) for action in legalMoves]
+        # bestScore = max(scores)
+        # bestIndices = [index for index in range(len(scores)) if scores[index] == bestScore]
+        # chosenIndex = random.choice(bestIndices)
+
+
+        # 1. move pacman in one of the four directions
+        # 2. from that state, move the ghosts in each of their four directions
+        # 3. from that state, move pacman in each of his four directions
+        # 4. from that state, move the ghosts in each of their four directions (4^num_ghosts)
+        # 4. return the minimun score of the ghost states
+        # 3. return the maximum score of the pacman states
+        # 2. return the minimum score of the ghost states
+        # 1. return the maximum score of the pacman states
+
+        legalActions = gameState.getLegalActions()
+        states = []
+        for action in legalActions:
+            states += [gameState.generateSuccessor(0, action)]
+
+        results = []
+
+        for i, state in enumerate(states):
+            results += self.getMax(state, 1, 1)
+
+        bestScore = max(results)
+
+        bestIndices = [index for index in xrange(len(results)) if results[index] == bestScore]
+        chosenIndex = random.choice(bestIndices)
+
+        print legalActions[chosenIndex]
+
+        return legalActions[chosenIndex]
+
+    def getMax(self, gameState, agentIndex, depth): # returns a tuple of (score, action)
+
+        if agentIndex == gameState.getNumAgents() - 1:
+            # make call to getMin
+            actions = gameState.getLegalActions(agentIndex)
+            states = []
+
+            for action in actions:
+                states += [gameState.generateSuccessor(agentIndex, action)]
+
+            results = []
+            for state in states:
+                results += [self.getMin(state, depth)]
+
+            return max(results)
+
+        # make a resursive call with agentIndex += 1
+
+        actions = gameState.getLegalActions(agentIndex)
+        states = []
+        for action in actions:
+            states += gameState.generateSuccessor(agentIndex, action)
+
+        results = []
+        for state in states:
+            results += [self.getMax(state, agentIndex + 1, depth)]
+
+        # return max of all ghost movements
+
+        return max(results)
+
+
+
+    def getMin(self, gameState, depth): # returns a single tuple
+        # consider all of pacman's actions, return the action which minimizes his success
+
+        actions = gameState.getLegalActions()
+        states = []
+
+        for action in actions:
+            states += [gameState.generateSuccessor(0, action)]
+
+        results = []
+        for i, state in enumerate(states):
+            if depth == self.depth:
+                results +=  [(self.evaluationFunction(state), actions[i])]
+            else:
+                results += self.getMax(state, 1, depth + 1)
+
+        #print "all possible pacman actions and resulting scores:"
+        #print results
+        print "min(results):"
+        print min(results)
+        return min(results)
+
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """

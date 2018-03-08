@@ -154,7 +154,6 @@ class MinimaxAgent(MultiAgentSearchAgent):
             Returns the total number of agents in the game
         """
         "*** YOUR CODE HERE ***"
-        legalMoves = gameState.getLegalActions()
 
         # Choose one of the best actions
         # scores = [self.evaluationFunction(gameState, action) for action in legalMoves]
@@ -172,63 +171,103 @@ class MinimaxAgent(MultiAgentSearchAgent):
         # 2. return the minimum score of the ghost states
         # 1. return the maximum score of the pacman states
 
-        legalActions = gameState.getLegalActions()
+        actions = gameState.getLegalActions()
         states = []
-        for action in legalActions:
+        for action in actions:
             states += [gameState.generateSuccessor(0, action)]
 
         results = []
 
         for i, state in enumerate(states):
-            results += self.getMax(state, 1, 1)
+            result = self.getMin(state, 0)
+            if type(result) is not tuple:
+                result = (result, actions[i])
+
+            results.append(result)
 
         bestScore = max(results)
 
         bestIndices = [index for index in xrange(len(results)) if results[index] == bestScore]
         chosenIndex = random.choice(bestIndices)
 
-        print legalActions[chosenIndex]
+        # print results
+        # print bestScore
+        # print bestIndices
+        # print chosenIndex
+        # print actions
+        # print actions[chosenIndex]
+        # print [s.state for s in states]
 
-        return legalActions[chosenIndex]
+        return actions[chosenIndex]
 
     def getMax(self, gameState, agentIndex, depth): # returns a tuple of (score, action)
 
         if agentIndex == gameState.getNumAgents() - 1:
-            # make call to getMin
             actions = gameState.getLegalActions(agentIndex)
-            states = []
 
+            if not actions:
+                return self.evaluationFunction(gameState)
+
+            states = []
             for action in actions:
                 states += [gameState.generateSuccessor(agentIndex, action)]
 
             results = []
-            for state in states:
-                results += [self.getMin(state, depth)]
+            for i, state in enumerate(states):
+                if depth == self.depth:
+                    # print "depth reached"
+                    results += [(self.evaluationFunction(state), actions[i])]
+                else:
+                    result = self.getMax(state, agentIndex + 1, depth)
+                    if type(result) is not tuple:
+                        result = (result, actions[i])
 
+                    results.append(result)
+
+                # result = self.getMin(state, depth + 1)
+                # if type(result) is not tuple:
+                #     result = (result, actions[i])
+                # results.append(result)
             return max(results)
 
-        # make a resursive call with agentIndex += 1
-
         actions = gameState.getLegalActions(agentIndex)
+
+        if not actions:
+            return self.evaluationFunction(gameState)
+
         states = []
         for action in actions:
-            states += gameState.generateSuccessor(agentIndex, action)
+            states += [gameState.generateSuccessor(agentIndex, action)]
 
         results = []
-        for state in states:
-            results += [self.getMax(state, agentIndex + 1, depth)]
+        for i, state in enumerate(states):
+            if depth == self.depth:
+                # print "depth reached"
+                results += [(self.evaluationFunction(state), actions[i])]
+            else:
+                result = self.getMax(state, agentIndex + 1, depth)
+                if type(result) is not tuple:
+                    result = (result, actions[i])
+
+                results.append(result)
+
+            # result = self.getMax(state, agentIndex + 1, depth)
+            # if type(result) is not tuple:
+            #     result = (result, actions[i])
+            #
+            # results.append(result)
 
         # return max of all ghost movements
-
         return max(results)
 
 
 
     def getMin(self, gameState, depth): # returns a single tuple
         # consider all of pacman's actions, return the action which minimizes his success
-
         actions = gameState.getLegalActions()
         states = []
+        if not actions:
+            return self.evaluationFunction(gameState)
 
         for action in actions:
             states += [gameState.generateSuccessor(0, action)]
@@ -236,14 +275,22 @@ class MinimaxAgent(MultiAgentSearchAgent):
         results = []
         for i, state in enumerate(states):
             if depth == self.depth:
-                results +=  [(self.evaluationFunction(state), actions[i])]
+                # print "depth reached"
+                results += [(self.evaluationFunction(state), actions[i])]
             else:
-                results += self.getMax(state, 1, depth + 1)
+                result = self.getMax(state, 1, depth)
 
+                if type(result) is not tuple:
+                    result = (result, actions[i])
+
+                results.append(result)
+
+        #print "results:"
+        #print results
         #print "all possible pacman actions and resulting scores:"
         #print results
-        print "min(results):"
-        print min(results)
+        #print "min(results):"
+        #print min(results)
         return min(results)
 
 
